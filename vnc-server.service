@@ -1,0 +1,8 @@
+[Unit]
+Description=VNC-Server Daemon
+
+[Service]
+ExecStart=/opt/m2m-env/vncsock/start.sh &
+
+[Install]
+WantedBy=multi-user.target

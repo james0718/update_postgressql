@@ -1,0 +1,10 @@
+[Unit]
+Description=Update PostgresSQL
+After=network-online.target firewalld.service docker.service lightdm.service
+
+[Service]
+ExecStart=/bin/update_postgressql
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
