@@ -30,6 +30,8 @@ int main(int argc ,char* argv[])
 	char intaddr[100] = {0};
     	char iface_name[20];
 	char *buffer = NULL;
+	int i = 0,
+	    j = 0;
 
     	if(getIfaceName(iface_name, sizeof(iface_name)) < 0)
 	{
@@ -54,17 +56,39 @@ int main(int argc ,char* argv[])
 	}
 	memset(conninfo, 0, 200);
 	sprintf(conninfo, "hostaddr=%s user=%s password=%s dbname=%s", intaddr, USER, PASSWD, DBNAME);
-	sleep(5);
+	sleep(3);
 
 	//connect to postgresSQL 
-    PGconn *conn = PQconnectdb(conninfo);
-	if(PQstatus(conn) == CONNECTION_BAD)
+    	PGconn *conn = PQconnectdb(conninfo);
+/* Start: Modify by yaokang 2019-09-10 */
+	while(1)
+	{	
+		if(PQstatus(conn) == CONNECTION_BAD)
+		{
+			sleep(2);
+			printf("Waiting for DataBase\n");
+			if(i >= 5)
+			{
+				fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(conn));
+				PQfinish(conn);
+				free(conninfo);
+    				exit(1);
+			}
+			i++;
+			continue;
+		}else {
+			break;
+		}
+	}
+/* End: Modify by yaokang 2019-09-10 */
+/*	if(PQstatus(conn) == CONNECTION_BAD)
 	{
 		fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(conn));
 		PQfinish(conn);
 		free(conninfo);
     		exit(1);
 	} 
+*/
 	char *dbinfo = NULL;
 	dbinfo = (char *)malloc(300);
 	if (NULL == dbinfo)
@@ -73,15 +97,35 @@ int main(int argc ,char* argv[])
 		return -1;
 	}
 	memset(dbinfo, 0, 300);
-	/* Start: Modify by yaokang 2019-06-10 */
-	//sprintf(dbinfo, "UPDATE \"aimuser\" SET apprepoip = '%s', bsprepoaddress = 'http://%s/%s', vncip = '%s' WHERE name = '%s';", intaddr, intaddr, ANDROIDBSP, intaddr, LOGIN);
 	sprintf(dbinfo, "UPDATE \"aimuser\" SET repoip = '%s', vncip = '%s' WHERE name = '%s';", intaddr, intaddr, LOGIN);
-	/* End: Modify by yaokang 2019-06-10 */
-	sleep(3);
+	sleep(5);
 	PGresult *res = PQexec(conn, dbinfo);
 
+/* Start: Modify by yaokang 2019-09-10 */
+	while(1)
+	{	
+		if (PQresultStatus(res) != PGRES_COMMAND_OK) 
+		{
+			sleep(1);
+			printf("Waiting LISTEN DataBase\n");
+			if(j >= 5)
+			{
+				fprintf(stderr, "LISTEN command failed: %s", PQerrorMessage(conn)); 
+        			PQclear(res);  
+				PQfinish(conn);  
+				free(conninfo);
+				free(dbinfo);
+    				exit(1);
+			}
+			j++;
+			continue;
+		}else {
+			break;
+		}
+	}
+/* End: Modify by yaokang 2019-09-10 */
 	//running select postgresSQL
-	if (PQresultStatus(res) != PGRES_COMMAND_OK) 
+/*	if (PQresultStatus(res) != PGRES_COMMAND_OK) 
 	{
 		fprintf(stderr, "LISTEN command failed: %s", PQerrorMessage(conn)); 
         	PQclear(res);  
@@ -90,14 +134,9 @@ int main(int argc ,char* argv[])
 		free(dbinfo);
     		exit(1);
 	}
-
-	sleep(2);
+*/
 	res = PQexec(conn, "SELECT * FROM \"aimuser\"");
-	/* Start: Modify by yaokang 2019-06-10 */
-	//printf("apprepoip:%s\tbsprepoaddress=%s\tvncip=%s\n", PQgetvalue(res, 0, 1), PQgetvalue(res, 0, 2), PQgetvalue(res, 0, 6));
 	printf("repoip:%s\tvncip=%s\n", PQgetvalue(res, 0, 3),PQgetvalue(res, 0, 5));
-	/* End: Modify by yaokang 2019-06-10 */
-
 	PQclear(res);
 	PQfinish(conn);
 	free(conninfo);
@@ -137,6 +176,7 @@ static int getIfaceName(char *iface_name, int len)
         }
 
         strncpy(iface_name, devname, len);
+        //strncpy(iface_name, "tun0", len);
         fclose(fp);
         return 0;
     }
