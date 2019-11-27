@@ -5,6 +5,7 @@
 #include <net/route.h>
 #include <errno.h>  
 #include <unistd.h>  
+#include <string.h>
   
 #include <netinet/in.h>
 #include <net/if.h>
@@ -20,6 +21,16 @@
 #define  ANDROIDBSP	"androidbsp"
 #define  LOGIN		"admin"
 
+//#define TEST 	1
+//#define DEBUG 	1
+
+#ifdef DEBUG
+#define DEBUGPRINT	printf
+#else
+#define	DEBUGPRINT(a, ...)
+#endif
+
+int getuname(char *iface_name, int len);
 static int getIfaceName(char *iface_name, int len);  //read activity network interface 
 static int getIpAddress(char *iface_name, char *ip_addr, int len); // get ipaddress
 
@@ -28,24 +39,36 @@ int main(int argc ,char* argv[])
 
 	//struct in_addr  intaddr;
 	char intaddr[100] = {0};
-    	char iface_name[20];
+    	char iface_name[20] = {0};
 	char *buffer = NULL;
 	int i = 0,
 	    j = 0;
-
-    	if(getIfaceName(iface_name, sizeof(iface_name)) < 0)
+	int vpnflag = 0;
+	if(getuname(iface_name, sizeof(iface_name)) == 0)
 	{
-        	printf("get interface name error!\n");
-        	return -1;
-    	}
-
-    	if(getIpAddress(iface_name, intaddr, 15) < 0) 
-	{
-        	printf("get interface ip address error!\n");
-        	return -1;
-    	}
-    
+#ifdef TEST
+		DEBUGPRINT("%s:%d: iface_name=%s, sizeof(iface_name)=%ld, strlen(iface_name)=%ld\n", __FILE__, __LINE__, iface_name, sizeof(iface_name), strlen(iface_name));
+#endif
+		if(getIpAddress(iface_name, intaddr, 15) < 0) 
+		{
+			printf("get interface ip address error!\n");
+			return -1;
+		}
+		
+	}else{
+		if(getIfaceName(iface_name, sizeof(iface_name)) < 0)
+		{
+        		printf("get interface name error!\n");
+        		return -1;
+    		}
+		if(getIpAddress(iface_name, intaddr, 15) < 0) 
+		{
+			printf("get interface ip address error!\n");
+			return -1;
+		}
+	}
     	printf("active ip:%s\n",(char *) &intaddr);	
+	printf("active ethernet name:%s\n", iface_name);
 
 	char *conninfo = NULL;
 	conninfo = (char *)malloc(200);
@@ -97,7 +120,14 @@ int main(int argc ,char* argv[])
 		return -1;
 	}
 	memset(dbinfo, 0, 300);
-	sprintf(dbinfo, "UPDATE \"aimuser\" SET repoip = '%s', vncip = '%s' WHERE name = '%s';", intaddr, intaddr, LOGIN);
+	if(getuname(iface_name, sizeof(iface_name)) == 0)
+	{
+		vpnflag = 1;
+		sprintf(dbinfo, "UPDATE \"aimuser\" SET isvpn = '%d', repoip = '%s', vncip = '%s' WHERE name = '%s';", vpnflag, intaddr, intaddr, LOGIN);
+	}else{
+		vpnflag = 0;
+		sprintf(dbinfo, "UPDATE \"aimuser\" SET isvpn = '%d', repoip = '%s', vncip = '%s' WHERE name = '%s';", vpnflag, intaddr, intaddr, LOGIN);
+	}
 	sleep(5);
 	PGresult *res = PQexec(conn, dbinfo);
 
@@ -136,13 +166,37 @@ int main(int argc ,char* argv[])
 	}
 */
 	res = PQexec(conn, "SELECT * FROM \"aimuser\"");
-	printf("repoip:%s\tvncip=%s\n", PQgetvalue(res, 0, 3),PQgetvalue(res, 0, 5));
+	printf("isvpn:%s\trepoip:%s\tvncip:%s\n", PQgetvalue(res, 0, 2), PQgetvalue(res, 0, 6),PQgetvalue(res, 0, 8));
 	PQclear(res);
 	PQfinish(conn);
 	free(conninfo);
 	free(dbinfo);
-
 	return 0;
+}
+
+//function getuname() support openvpn, if enable openvpn, which has a tun0 node in ifconfig info and /proc/net/route file.
+int getuname(char *iface_name, int len)
+{
+	int r = -1;
+	char name[20] = {0};
+	char *str = NULL;
+
+	FILE *fp = popen("cat /proc/net/route |grep tun |awk '{printf $1}'", "r");
+	fgets(name, sizeof(name), fp);
+	if (strncmp(name, "tun", 3) != 0)
+	{
+		DEBUGPRINT("%s:%d: get device name is not tun, default used hardware network device name!\n", __FILE__, __LINE__);
+		fclose(fp);
+		return -1;
+	}
+	DEBUGPRINT("%s:%d: Info: get network device name tun success, default used tun!\n", __FILE__, __LINE__);
+#ifdef TEST
+	DEBUGPRINT("%s:%d: name=%s sizeof(name)=%ld strlen(name)=%ld\n", __FILE__, __LINE__, name, sizeof(name), strlen(name));
+#endif
+	strncpy(iface_name, name, sizeof(name));
+	DEBUGPRINT("%s:%d: Getuname Info: iface_name=%s sizeof(iface_name)=%ld strlen(iface_name)=%ld\n", __FILE__, __LINE__, iface_name, sizeof(iface_name), strlen(iface_name));
+	fclose(fp);
+	return 0;	
 }
 
 // read active ethernet name func()
@@ -174,9 +228,7 @@ static int getIfaceName(char *iface_name, int len)
             }
             continue;
         }
-
         strncpy(iface_name, devname, len);
-        //strncpy(iface_name, "tun0", len);
         fclose(fp);
         return 0;
     }
