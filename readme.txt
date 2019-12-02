@@ -6,7 +6,7 @@
 # upload projects or files into Github
 # git init
 # git add .
-# git commit -m first commit
+# git commit -m "first commit"
 //if running #git remote have error, please exec # git pull --rebase origin maste 
 # git remote add origin https://github.com/james0718/update_postgressql.git
 # git pull --rebase origin master  //download README.md local computer

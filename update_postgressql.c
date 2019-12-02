@@ -181,7 +181,7 @@ int getuname(char *iface_name, int len)
 	char name[20] = {0};
 	char *str = NULL;
 
-	FILE *fp = popen("cat /proc/net/route |grep tun |awk '{printf $1}'", "r");
+	FILE *fp = popen("nmcli d |grep tun |awk '{printf $1}'", "r");
 	fgets(name, sizeof(name), fp);
 	if (strncmp(name, "tun", 3) != 0)
 	{
@@ -193,7 +193,7 @@ int getuname(char *iface_name, int len)
 #ifdef TEST
 	DEBUGPRINT("%s:%d: name=%s sizeof(name)=%ld strlen(name)=%ld\n", __FILE__, __LINE__, name, sizeof(name), strlen(name));
 #endif
-	strncpy(iface_name, name, sizeof(name));
+	strncpy(iface_name, name, 4);
 	DEBUGPRINT("%s:%d: Getuname Info: iface_name=%s sizeof(iface_name)=%ld strlen(iface_name)=%ld\n", __FILE__, __LINE__, iface_name, sizeof(iface_name), strlen(iface_name));
 	fclose(fp);
 	return 0;	
