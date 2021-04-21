@@ -16,7 +16,7 @@
 #include <sys/socket.h>
 
 #define  USER    	"postgres"
-#define  PASSWD		"postgres"
+#define  PASSWD		"advantech1990"
 #define	 DBNAME		"aimlink"
 #define  ANDROIDBSP	"androidbsp"
 #define  LOGIN		"admin"
@@ -165,8 +165,8 @@ int main(int argc ,char* argv[])
     		exit(1);
 	}
 */
-	res = PQexec(conn, "SELECT * FROM \"aimuser\"");
-	printf("isvpn:%s\trepoip:%s\tvncip:%s\n", PQgetvalue(res, 0, 2), PQgetvalue(res, 0, 6),PQgetvalue(res, 0, 8));
+	res = PQexec(conn, "SELECT isvpn,repoip,vncip FROM \"aimuser\"");
+	printf("isvpn:%s\trepoip:%s\tvncip:%s\n", PQgetvalue(res, 0, 0), PQgetvalue(res, 0, 1),PQgetvalue(res, 0, 2));
 	PQclear(res);
 	PQfinish(conn);
 	free(conninfo);
