@@ -88,7 +88,7 @@ int main(int argc ,char* argv[])
 	{	
 		if(PQstatus(conn) == CONNECTION_BAD)
 		{
-			sleep(2);
+			sleep(3);
 			printf("Waiting for DataBase\n");
 			if(i >= 5)
 			{
@@ -136,7 +136,7 @@ int main(int argc ,char* argv[])
 	{	
 		if (PQresultStatus(res) != PGRES_COMMAND_OK) 
 		{
-			sleep(1);
+			sleep(2);
 			printf("Waiting LISTEN DataBase\n");
 			if(j >= 5)
 			{
