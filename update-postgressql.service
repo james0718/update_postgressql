@@ -1,9 +1,11 @@
 [Unit]
 Description=Update PostgresSQL
-After=network-online.target firewalld.service docker.service lightdm.service
+After=multi-user.target
 
 [Service]
-ExecStart=/bin/update_postgressql
+Type=simple
+ExecStart=/bin/updatepostgressql
+RestartSec=86400
 Restart=always
 
 [Install]
