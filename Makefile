@@ -2,7 +2,7 @@ CC=gcc
 CFLAGS=-I/usr/include/postgresql
 LDDIR=-L/usr/lib
 LDFLAGS=-lpq
-BINS=update_postgressql
+BINS=update_postgressql delete_repoip
 
 
 all: $(BINS)

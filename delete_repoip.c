@@ -79,7 +79,7 @@ int main(int argc ,char* argv[])
 	}
 	memset(conninfo, 0, 200);
 	sprintf(conninfo, "hostaddr=%s user=%s password=%s dbname=%s", intaddr, USER, PASSWD, DBNAME);
-	sleep(3);
+	sleep(1);
 
 	//connect to postgresSQL 
     	PGconn *conn = PQconnectdb(conninfo);
@@ -88,8 +88,8 @@ int main(int argc ,char* argv[])
 	{	
 		if(PQstatus(conn) == CONNECTION_BAD)
 		{
-			sleep(3);
-			printf("connect:Waiting for DataBase\n");
+			sleep(1);
+			printf("Waiting for DataBase\n");
 			if(i >= 5)
 			{
 				fprintf(stderr, "Connection to database failed: %s\n", PQerrorMessage(conn));
@@ -105,40 +105,6 @@ int main(int argc ,char* argv[])
 	}
 /* End: Modify by yaokang 2019-09-10 */
 
-/* Start: Modify by yaokang 2021-08-02 */
-	char *querydb = NULL;
-	querydb = (char *)malloc(300);
-	if (NULL == querydb){
-		perror("malloc");
-		return -1;
-	}
-	memset(querydb, 0, 300);
-	PGresult *query_res = PQexec(conn, "SELECT repoip FROM \"aimuser\"");
-/*
-	while(1)
-	{	
-		if (PQresultStatus(query_res) != PGRES_COMMAND_OK) 
-		{
-			sleep(2);
-			printf("querydb:Waiting LISTEN DataBase\n");
-			if(j >= 5)
-			{
-				fprintf(stderr, "LISTEN command failed: %s\n", PQerrorMessage(conn)); 
-        			PQclear(query_res);  
-				PQfinish(conn);  
-				free(conninfo);
-				free(querydb);
-    				exit(1);
-			}
-			j++;
-			continue;
-		}else {
-			break;
-		}
-	}
-*/
-	sprintf(querydb, "%s", PQgetvalue(query_res, 0, 0));
-/* End: Modify by yaokang 2021-08-02 */
 	char *dbinfo = NULL;
 	dbinfo = (char *)malloc(300);
 	if (NULL == dbinfo)
@@ -147,29 +113,16 @@ int main(int argc ,char* argv[])
 		return -1;
 	}
 	memset(dbinfo, 0, 300);
-	if(getuname(iface_name, sizeof(iface_name)) == 0)
-	{
-		vpnflag = 1;
-		sprintf(dbinfo, "UPDATE \"aimuser\" SET isvpn = '%d', repoip = '%s', serverip = '%s', vncip = '%s' WHERE name = '%s';", vpnflag, intaddr, intaddr, intaddr, LOGIN);
-	}else{
-		vpnflag = 0;
-		if (strcmp(querydb, "") == 0){
-			printf("repoip data is empty!\n");
-			sprintf(dbinfo, "UPDATE \"aimuser\" SET isvpn = '%d', repoip = '%s', serverip = '%s', vncip = '%s' WHERE name = '%s';", vpnflag, intaddr, intaddr, intaddr, LOGIN);
-		}else{
-			printf("repoip data: %s\n", querydb);
-			sprintf(dbinfo, "UPDATE \"aimuser\" SET isvpn = '%d', serverip = '%s', vncip = '%s' WHERE name = '%s';", vpnflag, intaddr, intaddr, LOGIN);
-		}
-	}
-	sleep(5);
+	sprintf(dbinfo, "UPDATE \"aimuser\" SET repoip = '%s' WHERE name = '%s';", "", LOGIN);
+	sleep(1);
 	PGresult *res = PQexec(conn, dbinfo);
 /* Start: Modify by yaokang 2019-09-10 */
 	while(1)
 	{	
 		if (PQresultStatus(res) != PGRES_COMMAND_OK) 
 		{
-			sleep(2);
-			printf("dbinfo:Waiting LISTEN DataBase\n");
+			sleep(1);
+			printf("Waiting LISTEN DataBase\n");
 			if(j >= 5)
 			{
 				fprintf(stderr, "LISTEN command failed: %s", PQerrorMessage(conn)); 
@@ -186,10 +139,9 @@ int main(int argc ,char* argv[])
 		}
 	}
 /* End: Modify by yaokang 2019-09-10 */
-	res = PQexec(conn, "SELECT isvpn,repoip,serverip,vncip FROM \"aimuser\"");
-	printf("isvpn:%s\trepoip:%s\tserverip:%s\tvncip:%s\n", PQgetvalue(res, 0, 0), PQgetvalue(res, 0, 1), PQgetvalue(res, 0, 2), PQgetvalue(res, 0, 3));
-	PQclear(query_res);
-	free(querydb);
+	printf("repoip data is deleted successfully!\n");
+	res = PQexec(conn, "SELECT isvpn,repoip,vncip FROM \"aimuser\"");
+	printf("isvpn:%s\trepoip:%s\tserverip:%s\n", PQgetvalue(res, 0, 0), PQgetvalue(res, 0, 1),PQgetvalue(res, 0, 2));
 	PQclear(res);
 	PQfinish(conn);
 	free(conninfo);
