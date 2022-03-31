@@ -16,7 +16,7 @@
 #include <sys/socket.h>
 
 #define  USER    	"postgres"
-#define  PASSWD		"advantech1990"
+//#define  PASSWD		"advantech1990"
 #define	 DBNAME		"aimlink"
 #define  ANDROIDBSP	"androidbsp"
 #define  LOGIN		"admin"
@@ -44,6 +44,13 @@ int main(int argc ,char* argv[])
 	int i = 0,
 	    j = 0;
 	int vpnflag = 0;
+
+	FILE * fp;
+        char PASSWD[100] = {0};
+
+        fp=popen("cat /bin/.env |grep  POSTGRES_PASSWORD|awk -F '=' '{print $2}'","r");
+        fgets(PASSWD,sizeof(PASSWD),fp);
+
 	if(getuname(iface_name, sizeof(iface_name)) == 0)
 	{
 #ifdef TEST

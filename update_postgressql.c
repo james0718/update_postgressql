@@ -1,3 +1,8 @@
+/*
+* This function is to process the function of obtaining ip to update the database.
+*
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <libpq-fe.h>
@@ -16,7 +21,7 @@
 #include <sys/socket.h>
 
 #define  USER    	"postgres"
-#define  PASSWD		"advantech1990"
+//#define  PASSWD		"advantech1990"
 #define	 DBNAME		"aimlink"
 #define  ANDROIDBSP	"androidbsp"
 #define  LOGIN		"admin"
@@ -44,6 +49,17 @@ int main(int argc ,char* argv[])
 	int i = 0,
 	    j = 0;
 	int vpnflag = 0;
+	char *conninfo = NULL;
+	char *querydb = NULL; // query database repoip is empty
+	char *dbinfo = NULL;
+	char *issep = NULL;   // if web serverip set manual mode
+	/*Read postgres random password*/
+	FILE * fp;
+        char PASSWD[100] = {0};
+
+	fp=popen("cat /bin/.env |grep  POSTGRES_PASSWORD|awk -F '=' '{print $2}'","r");
+	fgets(PASSWD,sizeof(PASSWD),fp);
+
 	if(getuname(iface_name, sizeof(iface_name)) == 0)
 	{
 #ifdef TEST
@@ -70,7 +86,6 @@ int main(int argc ,char* argv[])
     	printf("active ip:%s\n",(char *) &intaddr);	
 	printf("active ethernet name:%s\n", iface_name);
 
-	char *conninfo = NULL;
 	conninfo = (char *)malloc(200);
 	if (NULL == conninfo)
 	{
@@ -83,7 +98,7 @@ int main(int argc ,char* argv[])
 
 	//connect to postgresSQL 
     	PGconn *conn = PQconnectdb(conninfo);
-/* Start: Modify by yaokang 2019-09-10 */
+/* Start: Modify by 2019-09-10 */
 	while(1)
 	{	
 		if(PQstatus(conn) == CONNECTION_BAD)
@@ -103,43 +118,22 @@ int main(int argc ,char* argv[])
 			break;
 		}
 	}
-/* End: Modify by yaokang 2019-09-10 */
+/* End: Modify by 2019-09-10 */
 
-/* Start: Modify by yaokang 2021-08-02 */
-	char *querydb = NULL;
-	querydb = (char *)malloc(300);
-	if (NULL == querydb){
+/* Start: Modify by 2021-08-02 */
+	querydb = (char *)malloc(300);  // query database repoip is empty
+	issep = (char *)malloc(300);   // if web serverip set manual mode
+	if ((NULL == querydb) || (NULL == issep)) {
 		perror("malloc");
 		return -1;
 	}
 	memset(querydb, 0, 300);
-	PGresult *query_res = PQexec(conn, "SELECT repoip FROM \"aimuser\"");
-/*
-	while(1)
-	{	
-		if (PQresultStatus(query_res) != PGRES_COMMAND_OK) 
-		{
-			sleep(2);
-			printf("querydb:Waiting LISTEN DataBase\n");
-			if(j >= 5)
-			{
-				fprintf(stderr, "LISTEN command failed: %s\n", PQerrorMessage(conn)); 
-        			PQclear(query_res);  
-				PQfinish(conn);  
-				free(conninfo);
-				free(querydb);
-    				exit(1);
-			}
-			j++;
-			continue;
-		}else {
-			break;
-		}
-	}
-*/
+	memset(issep, 0, 300);
+	PGresult *query_res = PQexec(conn, "SELECT repoip,issep FROM \"aimuser\"");
 	sprintf(querydb, "%s", PQgetvalue(query_res, 0, 0));
-/* End: Modify by yaokang 2021-08-02 */
-	char *dbinfo = NULL;
+	sprintf(issep, "%s", PQgetvalue(query_res, 0, 1));
+/* End: Modify by 2021-08-02 */
+
 	dbinfo = (char *)malloc(300);
 	if (NULL == dbinfo)
 	{
@@ -157,13 +151,19 @@ int main(int argc ,char* argv[])
 			printf("repoip data is empty!\n");
 			sprintf(dbinfo, "UPDATE \"aimuser\" SET isvpn = '%d', repoip = '%s', serverip = '%s', vncip = '%s' WHERE name = '%s';", vpnflag, intaddr, intaddr, intaddr, LOGIN);
 		}else{
-			printf("repoip data: %s\n", querydb);
-			sprintf(dbinfo, "UPDATE \"aimuser\" SET isvpn = '%d', serverip = '%s', vncip = '%s' WHERE name = '%s';", vpnflag, intaddr, intaddr, LOGIN);
+			if (strcmp(issep, "true") == 0) {
+				printf("repoip data: %s\n", querydb);
+				sprintf(dbinfo, "UPDATE \"aimuser\" SET isvpn = '%d', serverip = '%s', vncip = '%s' WHERE name = '%s';", vpnflag, intaddr, intaddr, LOGIN);
+			}else {
+				printf("repoip data: %s\n", querydb);
+				sprintf(dbinfo, "UPDATE \"aimuser\" SET isvpn = '%d', repoip = '%s', serverip = '%s', vncip = '%s' WHERE name = '%s';", vpnflag, intaddr, intaddr, intaddr, LOGIN);
+
+			}
 		}
 	}
 	sleep(5);
 	PGresult *res = PQexec(conn, dbinfo);
-/* Start: Modify by yaokang 2019-09-10 */
+/* Start: Modify by 2019-09-10 */
 	while(1)
 	{	
 		if (PQresultStatus(res) != PGRES_COMMAND_OK) 
@@ -185,9 +185,9 @@ int main(int argc ,char* argv[])
 			break;
 		}
 	}
-/* End: Modify by yaokang 2019-09-10 */
-	res = PQexec(conn, "SELECT isvpn,repoip,serverip,vncip FROM \"aimuser\"");
-	printf("isvpn:%s\trepoip:%s\tserverip:%s\tvncip:%s\n", PQgetvalue(res, 0, 0), PQgetvalue(res, 0, 1), PQgetvalue(res, 0, 2), PQgetvalue(res, 0, 3));
+/* End: Modify by 2019-09-10 */
+	res = PQexec(conn, "SELECT isvpn,repoip,serverip,vncip,issep FROM \"aimuser\"");
+	printf("PASSWD:%s\tisvpn:%s\trepoip:%s\tserverip:%s\tvncip:%s\tissep:%s\n", PASSWD, PQgetvalue(res, 0, 0), PQgetvalue(res, 0, 1), PQgetvalue(res, 0, 2), PQgetvalue(res, 0, 3), PQgetvalue(res, 0, 4));
 	PQclear(query_res);
 	free(querydb);
 	PQclear(res);
