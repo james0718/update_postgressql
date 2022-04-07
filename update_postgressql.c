@@ -186,7 +186,7 @@ int main(int argc ,char* argv[])
 		}
 	}
 /* End: Modify by 2019-09-10 */
-	res = PQexec(conn, "SELECT isvpn,repoip,serverip,vncip,issep FROM \"aimuser\"");
+	res = PQexec(conn, "SELECT isvpn,repoip,serverip,vncip,issep FROM \"aimuser\" WHERE name = \'admin\';");
 	printf("PASSWD:%s\tisvpn:%s\trepoip:%s\tserverip:%s\tvncip:%s\tissep:%s\n", PASSWD, PQgetvalue(res, 0, 0), PQgetvalue(res, 0, 1), PQgetvalue(res, 0, 2), PQgetvalue(res, 0, 3), PQgetvalue(res, 0, 4));
 	PQclear(query_res);
 	free(querydb);
